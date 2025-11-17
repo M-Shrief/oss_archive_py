@@ -72,7 +72,7 @@ async def does_oss_exists(oss_fullname: str, async_db: AsyncSession | None = Non
 async def get_all_categories(async_db: AsyncSession | None = None, sync_db: Session | None = None):
     """Note: You have to pass async_db or sync_db, if you didn't it'll return None"""
     try:
-        stmt = select(CategoryModel)
+        stmt = select(CategoryModel).order_by(CategoryModel.priority)
         if async_db is not None:
             res = await async_db.scalars(statement=stmt)
             categories = res.all()
@@ -91,7 +91,7 @@ async def get_all_categories(async_db: AsyncSession | None = None, sync_db: Sess
 async def get_all_owners(async_db: AsyncSession | None = None, sync_db: Session | None = None):
     """Note: You have to pass async_db or sync_db, if you didn't it'll return None"""
     try:
-        stmt = select(OwnerModel)
+        stmt = select(OwnerModel).order_by(OwnerModel.priority)
         if async_db is not None:
             res = await async_db.scalars(statement=stmt)
             owners = res.all()
@@ -109,7 +109,7 @@ async def get_all_owners(async_db: AsyncSession | None = None, sync_db: Session 
 async def get_all_oss(async_db: AsyncSession | None = None, sync_db: Session | None = None):
     """Note: You have to pass async_db or sync_db, if you didn't it'll return None"""
     try:
-        stmt = select(OSSModel)
+        stmt = select(OSSModel).order_by(OSSModel.priority)
         if async_db is not None:
             res = await async_db.scalars(statement=stmt)
             oss_list = res.all()
