@@ -8,20 +8,26 @@ from oss_archive.components.forgejo.shared import base_headers
 
 
 async def migrate_repo(repo_data: MigrateRepoReqBody):
-    logger.info("Migrating repo...", repo=f"{repo_data.repo_owner}/{repo_data.repo_name}", source=repo_data.clone_addr)
-
-    result = await httpx.async_post(
-        base_url=Forgejo.get("base_url") or "",
-        endpoint="/repos/migrate",
-        body=repo_data.model_dump(),
-        headers=base_headers,
-        timeout=Timeout(timeout=None, connect=10.0)
+    try:
+        result = await httpx.async_post(
+            base_url=Forgejo.get("base_url") or "",
+            endpoint="/repos/migrate",
+            body=repo_data.model_dump(mode="json"),
+            headers=base_headers,
+            timeout=Timeout(timeout=None, connect=10.0)
         )
 
-    if result is None:
-        logger.error("Migrating error", result="result is Noen")
-        return
+        if result is None:
+            logger.error("Unknown error calling Forgejo's POST /repos/migrate", repo_data=repo_data)
+            return
+        
+        if result.status_code != 201:
+            logger.error("Failed migrating the repo", result=result)
+            return
 
-    new_repo: ForgejoRepo = result.json()
-    logger.info("Mirrored repo correctly", repo=f"{repo_data.repo_owner}/{repo_data.repo_name}", source=repo_data.clone_addr)
-    return new_repo 
+        logger.info("Migrated the repo successfully", repo=repo_data)
+        return 
+    
+    except Exception as e:
+        logger.error("Unknown error mirgrating repo", repo_data=repo_data, error=e)
+        return
