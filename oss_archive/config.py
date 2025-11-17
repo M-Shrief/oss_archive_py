@@ -11,6 +11,13 @@ COMPRESSED_ARCHIVE_BASE_PATH = __env.get("COMPRESSED_ARCHIVE_BASE_PATH")
 
 JSON_FILES_PATH = __env.get("JSON_FILES_PATH")
 
+class APIConfigType(TypedDict):
+    base_url: str | None
+
+API = APIConfigType(
+    base_url = __env.get("API_BASE_URL")
+)
+
 class DatabaseConfigType(TypedDict):
     user: str
     password: str
