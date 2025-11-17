@@ -131,8 +131,10 @@ class ServiceEnum(str, Enum):
     forgejo = "forgejo"
 class MigrateRepoReqBody(BaseModel):
     clone_addr: Annotated[str, Field(examples=["https://github.com/deepseek-ai/awesome-deepseek-integration.git"])]
-    repo_name: Annotated[str, Field(examples=["awesome-deepseek-integration"])]
-    repo_owner: Annotated[str, Field(examples=["deepseek-ai-mirrored"])]
+    repo_name: Annotated[str, Field(examples=["deepseek-ai:awesome-deepseek-integration"])]
+    repo_owner: Annotated[str, Field(examples=["mirrors"])]
     service: Annotated[ServiceEnum, Field(default=ServiceEnum.git)]
     mirror: Annotated[bool, Field(default=True)]
     mirror_interval: Annotated[str, Field(default="168h0m0s")]
+    # auth_username: Annotated[str | None, Field(default="")] # used to authenticate to the service
+    # auth_password: Annotated[str | None, Field(default="")] # used to authenticate to the service
