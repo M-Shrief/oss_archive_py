@@ -10,7 +10,7 @@ from oss_archive.utils.logger import logger
 # Database
 from oss_archive.database.index import get_sync_db, async_engine
 from oss_archive.database.models import Base
-from oss_archive.seeders.index import seed_owners_oss
+from oss_archive.seeders.index import seed
 # Components
 from oss_archive.components.forgejo.router import router as forgejo_router
 from oss_archive.components.categories.router import router as categories_router
@@ -77,10 +77,9 @@ async def scalar_html() :
 
 @app.get("/seed", status_code=status.HTTP_200_OK)
 async def seed_database(db: Annotated[Session, Depends(dependency=get_sync_db)]):
-# async def seed_database(db: Annotated[Session, Depends(dependency=get_sync_db)]):
     try:
         # Maybe we can add query params to skip what we want
-        _ = await seed_owners_oss(db)
+        _ = await seed(db)
         return {"message": "Seedded The Database Successfully"}
     except Exception as e:
         logger.error("Seeding failure", error=e)

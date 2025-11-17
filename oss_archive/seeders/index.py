@@ -14,14 +14,14 @@ async def seed(db: Session):
     ### Make requests to outer APIs async, but the seeding operation can by sync
     # Steps:
     # 1 - We seed data in json-archive first to the database
-    # _ = await seed_json(db)   
+    _ = await seed_json(db)   
     # 2 -  Pull owners and start using each item to seed OSS into oss_table    
-    # _ = await seed_owners_oss(db)
+    _ = await seed_owners_oss(db)
 
     # 3 - After that we should create "mirrors" user in forgejo if it doesn't exist
-    # is_org_for_mirrors_created = await create_org_for_mirrors()
-    # if is_org_for_mirrors_created is False:
-    #     return
+    is_org_for_mirrors_created = await create_org_for_mirrors()
+    if is_org_for_mirrors_created is False:
+        return
     # 4 - Then we begin mirrors OSS while prioritizing the most important one to be done first,
     # and use a method that enable us to resume the work if it was stopped for any reason, and we can use WAL for that. 
     _ = await mirror_all_oss(db)    
