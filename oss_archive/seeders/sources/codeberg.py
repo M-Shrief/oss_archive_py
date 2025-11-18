@@ -9,7 +9,8 @@ from oss_archive.utils import httpx
 from oss_archive.utils.formatter import format_oss_fullname
 from oss_archive.database.models import Owner as OwnerModel, OSS as OSSModel
 from oss_archive.schemas import general as general_schemas
-from oss_archive.seeders import helpers
+from oss_archive.seeders import helpers as seed_helpers
+from oss_archive.database import helpers as db_helpers
 
 API_BASE_URL = "https://codeberg.org/api/v1"
 DEFAULT_PRIORITY = 7
@@ -22,7 +23,7 @@ async def seed_owner_oss(owner: OwnerModel, db: Session):
     logger.info("Got owners' repos", count=len(repos_arr))
     new_oss: list[OSSModel] = []
     for repo in repos_arr:
-        should_apply_on = helpers.should_apply_action_on_oss(owner, repo.get("name"))
+        should_apply_on = seed_helpers.should_apply_action_on_oss(owner, repo.get("name"))
         if not should_apply_on:
             continue
 
@@ -45,7 +46,7 @@ async def seed_oss(owner: OwnerModel, repo_dict: dict[str, Any], db: Session):
             return None
         oss_fullname = format_oss_fullname(owner.username, repo_name)
 
-        oss_does_exists = await helpers.does_oss_exists(oss_fullname, db)
+        oss_does_exists = await db_helpers.does_oss_exists(oss_fullname, sync_db=db)
         if oss_does_exists:
             return None
 
