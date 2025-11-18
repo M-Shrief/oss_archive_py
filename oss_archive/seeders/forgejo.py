@@ -1,3 +1,6 @@
+""" This module is used to seed Forgejo's instance, meaning:
+it's used to use the OSS data in our database, to add new mirrored repos to the Forgejo's instance.
+"""
 from httpx import Timeout
 ###
 from oss_archive.config import Forgejo as forgejo_config, API as api_config
@@ -58,7 +61,8 @@ async def is_oss_mirrored(oss_fullname: str):
 
 async def mirror_oss(oss_data: MigrateRepoReqBody):
     try:
-        # Calling our API's which starts a task, and doesn't wait for Forgejo's response.
+        # Calling our API's which starts the task queue from FastAPI, 
+        # and doesn't wait for Forgejo's response.
         mirror_response = await httpx.async_post(
             base_url=api_config.get("base_url") or "",
             endpoint="/forgejo/repos/migrate",
@@ -67,7 +71,8 @@ async def mirror_oss(oss_data: MigrateRepoReqBody):
             timeout=Timeout(timeout=None, connect=10.0)
             )
 
-        # Calling Forgejo's instance directly, and wait for the response.
+        # Calling Forgejo's instance directly, and wait for the response
+        
         # mirror_response = await httpx.async_post(
         #     base_url=forgejo_config.get("base_url") or "",
         #     endpoint="/repos/migrate",
