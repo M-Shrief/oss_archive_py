@@ -6,8 +6,9 @@ from httpx import Timeout
 from oss_archive.config import Forgejo as forgejo_config, API as api_config
 from oss_archive.utils import httpx
 from oss_archive.utils.logger import logger
+from oss_archive.database.models import OSS as OSSModel
 from oss_archive.components.forgejo.shared import base_headers
-from oss_archive.components.forgejo.schema import MigrateRepoReqBody
+from oss_archive.components.forgejo.schema import MigrateRepoReqBody, ServiceEnum
 
 DEFAULT_MIRROR_INTERVAL = "168h0m0s"
 
@@ -89,3 +90,20 @@ async def mirror_oss(oss_data: MigrateRepoReqBody):
     except Exception as e:
         logger.error("Unknown error mirroring OSS", oss_data=oss_data, error=e)
         return False
+
+def create_migrate_repo_req_body(oss: OSSModel, org_for_mirrors: str) -> MigrateRepoReqBody | None:
+    """ return a MigrateRepoBody using git as it's service.
+    
+    if no git's clone_url is provided, it returns None."""
+    if oss.clone_url is None:
+        logger.info("Failed to mirror OSS, as it's clone_url doesn't exists", oss_fullname=oss.fullname)
+        return None
+
+    return MigrateRepoReqBody(   
+        clone_addr=oss.clone_url,
+        repo_name=oss.fullname,
+        repo_owner=org_for_mirrors,
+        service=ServiceEnum.git,
+        mirror=True,
+        mirror_interval=DEFAULT_MIRROR_INTERVAL
+    )
