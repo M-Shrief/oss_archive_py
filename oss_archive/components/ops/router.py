@@ -115,3 +115,49 @@ async def create_mirrors_org():
         return api_schemas.BaseRes(message=f"Created mirrors organization, Org's name: {org_for_mirrors}")
     else:
         raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail="Error: Couldn't create mirrors org, try again later!")
+
+@router.post(
+    "/ops/mirror/oss",
+    status_code=status.HTTP_201_CREATED,
+    response_model=api_schemas.BaseRes,
+    response_model_exclude_none=True,   
+)
+async def mirror_all_oss(queries: Annotated[component_schema.MirrorOSSQueries, Query()], db: Annotated[AsyncSession, Depends(get_async_db)]):
+    try:
+        if queries.owner_username is not None:
+                oss_list = await get_all_oss(owner_username=queries.owner_username, async_db=db)
+        elif queries.caregory_key is not None:
+                oss_list = await get_all_oss(category_key=queries.caregory_key, async_db=db)
+        else:
+            oss_list = await get_all_oss(async_db=db)
+
+
+        if oss_list is None:
+            raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Couldn't mirror requested OSS, try again later.")
+        elif len(oss_list) == 0:
+            if queries.caregory_key is not None:
+                err_message = "Couldn't get any OSS by the selected category"
+            elif queries.owner_username is not None:
+                err_message = "Couldn't get any OSS by the selected owner"
+            else:
+                err_message = "Couldn't mirror requested OSS, try again later."
+
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail=err_message)
+
+        if ENV == "dev": #limit number of OSS in development
+            oss_list = oss_list[:3]
+
+        _ = await mirror_oss_list(oss_list)
+
+        # maybe we should return the oss_list, so that they know their count and each OSS's id, name,...etc.
+        return api_schemas.BaseRes(message="Mirror operation for OSS requested is underway, check them later.")
+
+    except HTTPException as e:
+        if e.status_code == status.HTTP_404_NOT_FOUND:
+            raise e
+        logger.error("Couldn't mirror requested OSS", error=e)
+        raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail="Error: Couldn't mirror requested OSS, try again later.")
+    except Exception as e:
+        logger.error("Couldn't mirror requested OSS", error=e)
+        raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail="Error: Couldn't mirror requested OSS, try again later.")
+
