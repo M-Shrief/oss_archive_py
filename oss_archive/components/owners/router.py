@@ -1,17 +1,17 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, exc, delete, func
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, Session
 from uuid import UUID
 from typing import Annotated
 ###
 from oss_archive.utils.logger import logger
-from oss_archive.database.index import get_async_db
+from oss_archive.utils import json as json_utils
+from oss_archive.database.index import get_async_db, get_sync_db
 from oss_archive.database.models import Owner as OwnerModel, Category as CategoryModel
 from oss_archive.database.helpers import does_owner_exists
-from oss_archive.schemas import owner as owner_schemas, api as api_schemas
+from oss_archive.schemas import owner as owner_schemas, api as api_schemas, oss as oss_schemas
 from oss_archive.components.owners import schema as component_schemas
-from oss_archive.utils import json as json_utils
 
 router = APIRouter(tags=["Owners"])
 
@@ -23,7 +23,6 @@ router = APIRouter(tags=["Owners"])
 )
 async def get_owners(queries: Annotated[api_schemas.SharedQueriesForGetAllRequests, Query()],db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        #.options(joinedload(Owner.meta_list).load_only(MetaList.key, MetaList.name))
         stmt = select(OwnerModel).offset(queries.offset).limit(queries.limit)
         resp  = await db.scalars(statement=stmt)
         result = resp.all()
@@ -47,7 +46,7 @@ async def get_owners(queries: Annotated[api_schemas.SharedQueriesForGetAllReques
 )
 async def get_owner_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        stmt = select(OwnerModel).where(OwnerModel.id == id)#.options(joinedload(Owner.meta_list).load_only(MetaList.key, MetaList.name)).options(joinedload(Owner.os_softwares).load_only(OSSoftware.id, OSSoftware.name))
+        stmt = select(OwnerModel).where(OwnerModel.id == id)
 
         res = await db.scalars(stmt)
         owner = res.unique().one()
