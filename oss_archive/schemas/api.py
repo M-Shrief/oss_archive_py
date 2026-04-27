@@ -2,6 +2,10 @@ from fastapi import HTTPException
 from pydantic import BaseModel, Field
 from typing import Annotated, Literal, TypeVar, Generic
 
+
+class BaseRes(BaseModel):
+    message: Annotated[str, Field()]
+
 class SharedQueriesForGetAllRequests(BaseModel):
     """A model to contain shared queries for API request to get a list of entities, like blocks.
     Use like this:

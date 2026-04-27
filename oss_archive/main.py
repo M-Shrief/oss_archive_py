@@ -6,16 +6,17 @@ from sqlalchemy.orm import Session
 from scalar_fastapi import get_scalar_api_reference # pyright:ignore[reportMissingTypeStubs]
 from typing import Annotated
 ###
+from oss_archive.schemas.api import BaseRes
 from oss_archive.utils.logger import logger
 # Database
 from oss_archive.database.index import get_sync_db, async_engine
 from oss_archive.database.models import Base
-from oss_archive.seeders.index import seed
 # Components
 from oss_archive.components.forgejo.router import router as forgejo_router
 from oss_archive.components.categories.router import router as categories_router
 from oss_archive.components.owners.router import router as owners_router
 from oss_archive.components.oss.router import router as oss_router
+from oss_archive.components.ops.router import router as ops_router
 
 
 @asynccontextmanager
@@ -75,17 +76,7 @@ async def scalar_html() :
         title=app.title,
     )
 
-@app.get("/seed", status_code=status.HTTP_200_OK)
-async def seed_database(db: Annotated[Session, Depends(dependency=get_sync_db)]):
-    try:
-        # Maybe we can add query params to skip what we want
-        _ = await seed(db)
-        return {"message": "Seedded The Database Successfully"}
-    except Exception as e:
-        logger.error("Seeding failure", error=e)
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Seeding operation has failed")
-
-@app.get("/ping")
+@app.get("/ping",status_code=status.HTTP_200_OK, response_model=BaseRes)
 async def ping():    
     return {"message": "pong"}
 
@@ -95,3 +86,5 @@ app.include_router(forgejo_router, prefix="/api")
 app.include_router(categories_router, prefix="/api")
 app.include_router(owners_router, prefix="/api")
 app.include_router(oss_router, prefix="/api")
+app.include_router(ops_router, prefix="/api")
+
