@@ -100,3 +100,18 @@ async def seed_owner_oss(owner_id: UUID, db: Annotated[Session, Depends(get_sync
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Owner is not found!")
     except Exception:
         raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Couldn't seed Owner's OSS")
+
+
+@router.post(
+    "/ops/mirror/org",
+    status_code=status.HTTP_201_CREATED,
+    response_model=api_schemas.BaseRes,
+    response_model_exclude_none=True,   
+)
+async def create_mirrors_org():
+    is_org_for_mirrors_created = await create_org_for_mirrors()
+    if is_org_for_mirrors_created:
+        org_for_mirrors = forgejo_config.get("org_for_mirrors")
+        return api_schemas.BaseRes(message=f"Created mirrors organization, Org's name: {org_for_mirrors}")
+    else:
+        raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail="Error: Couldn't create mirrors org, try again later!")
