@@ -2,15 +2,15 @@
 from pydantic import Field, BaseModel
 from typing import Annotated
 ###
-from oss_archive.schemas import category, general #, oss
+from oss_archive.schemas import category, general , owner, oss
 
 
 
 class GetCategoryByKey_Res(
     category.DescriptiveSchema
     ):
-    pass
-    # main_oss: list[oss.MinimalSchema]
+    main_oss: list[oss.MinimalSchema]
+    owners: list[owner.MinimalSchema]
 
 class CreateCategory_Req(
     category.KeyField,

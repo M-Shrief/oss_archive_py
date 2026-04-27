@@ -2,10 +2,12 @@ from fastapi import APIRouter, HTTPException, status, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, exc, delete, func
 from typing import Annotated
+
+from sqlalchemy.orm import joinedload
 ###
 from oss_archive.utils.logger import logger
 from oss_archive.database.index import get_async_db
-from oss_archive.database.models import Category as CategoryModel
+from oss_archive.database.models import Category as CategoryModel, OSS as OSSModel
 from oss_archive.database.helpers import does_category_exists
 from oss_archive.schemas import category as category_schemas, api as api_schemas
 from oss_archive.components.categories import schema as component_schemas #, json as component_json
@@ -44,7 +46,7 @@ async def get_categories(queries: Annotated[api_schemas.SharedQueriesForGetAllRe
 )
 async def get_category_by_key(key: str, db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        stmt = select(CategoryModel).where(CategoryModel.key == key)
+        stmt = select(CategoryModel).where(CategoryModel.key == key).options(joinedload(CategoryModel.owners)).options(joinedload(CategoryModel.main_oss).load_only(OSSModel.id, OSSModel.fullname, OSSModel.priority, OSSModel.is_mirrored))
         res = await db.scalars(statement=stmt)
         category = res.unique().one()
         return category
