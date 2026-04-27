@@ -161,3 +161,40 @@ async def mirror_all_oss(queries: Annotated[component_schema.MirrorOSSQueries, Q
         logger.error("Couldn't mirror requested OSS", error=e)
         raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail="Error: Couldn't mirror requested OSS, try again later.")
 
+@router.post(
+    "/ops/mirror/oss/{id}",
+    status_code=status.HTTP_201_CREATED,
+    response_model=api_schemas.BaseRes,
+    response_model_exclude_none=True,   
+)
+async def mirror_oss_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)]):
+    try:
+        stmt = select(OSSModel).where(OSSModel.id == id)
+        res = await db.scalars(statement=stmt)
+        oss = res.unique().one()
+
+        is_mirrored = await is_oss_mirrored(oss.fullname)
+        if is_mirrored is True:
+            return api_schemas.BaseRes(message=f"OSS: {oss.fullname} is already mirrored.")
+        
+
+        org_for_mirrors = forgejo_config.get("org_for_mirrors")
+        if org_for_mirrors is None:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Couldn't get mirrors' organization")
+
+        oss_data = create_migrate_repo_req_body(oss, org_for_mirrors)
+        if oss_data is None:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Couldn't initiate mirroring process")
+        
+        did_mirror_oss = await mirror_oss(oss_data)
+
+        if did_mirror_oss is True:
+            return api_schemas.BaseRes(message=f"Started the Mirroring procces for the OSS: {oss.fullname} successfully.")
+        else:
+            return api_schemas.BaseRes(message=f"Failed to start the Mirroring procces for the OSS: {oss.fullname}.")
+
+    except exc.NoResultFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="OSS is not found!")
+    except Exception as e:
+        logger.error("Error when mirroring OSS by id", error=e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Unknown error, try again later")
