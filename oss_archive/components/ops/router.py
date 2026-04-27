@@ -33,3 +33,70 @@ async def seed_init(db: Annotated[Session, Depends(get_sync_db)]):
     except Exception as e:
         logger.error("Seeding initialization operation has failed", error=e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Seeding initialization operation has failed")
+
+@router.post(
+    "/ops/seed/json",
+    status_code=status.HTTP_201_CREATED,
+    response_model=api_schemas.BaseRes,
+    response_model_exclude_none=True,   
+)
+async def seed_json(db: Annotated[Session, Depends(get_sync_db)]):
+    try:
+        _ = await seed_all_json(db)
+        return api_schemas.BaseRes(message="Operation is completed.")
+    except Exception as e:
+        logger.error("Couldn't seed all JSON files", error=e)
+        raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail="Error: Couldn't seed all JSON files, try again later!")
+
+
+@router.post(
+    "/ops/seed/category_owners/{category_key}",
+    status_code=status.HTTP_201_CREATED,
+    response_model=api_schemas.BaseRes,
+    response_model_exclude_none=True,   
+)
+async def seed_category_owners(category_key: str, queries: Annotated[DBQueryLimits, Query()] ,db: Annotated[Session, Depends(get_sync_db)]):
+    try:
+        owners = await get_all_owners(category_key=category_key, query_limits=queries, sync_db=db)
+        if owners is None:
+            raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Couldn't get owners by {category_key} category, try again later.")
+        elif len(owners) == 0:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Couldn't get any owners by the selected category")
+
+        for owner in owners:
+            logger.info(f"Owner: {owner.username}")
+        # _ = seed_owners_oss(owners, db)
+
+        return api_schemas.BaseRes(message=f"Seeded all owners in {category_key} category")
+
+    except HTTPException as e:
+        if e.status_code == status.HTTP_404_NOT_FOUND:
+            raise e
+        logger.error(f"Couldn't seed owners by {category_key} category", error=e)
+        raise HTTPException(status.HTTP_406_NOT_ACCEPTABLE, detail=f"Error: Couldn't seed owners by {category_key} category, try again later!")
+
+
+
+@router.post(
+    "/ops/seed/owner_oss/{owner_id}",
+    status_code=status.HTTP_201_CREATED,
+    response_model=list[oss_schemas.MinimalSchema],
+    response_model_exclude_none=True,   
+)
+async def seed_owner_oss(owner_id: UUID, db: Annotated[Session, Depends(get_sync_db)]):
+    try:
+        stmt = select(OwnerModel).where(OwnerModel.id == owner_id)
+
+        res = db.scalars(stmt)
+        owner = res.unique().one()
+
+        owner_oss = await seed_owner_oss_from_source(owner, db)
+        if owner_oss is  None:
+            logger.error(f"Couldn't seed Owner: {owner.name} OSS from source: {owner.source}")
+            raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Couldn't seed Owner's OSS")
+
+        return owner_oss
+    except exc.NoResultFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Owner is not found!")
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Couldn't seed Owner's OSS")
