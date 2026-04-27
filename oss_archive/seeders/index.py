@@ -1,22 +1,30 @@
 from sqlalchemy.orm import Session
 from time import sleep
+from collections.abc import Sequence
 ###
 from oss_archive.config import ENV, Forgejo as forgejo_config
 from oss_archive.utils.logger import logger
 from oss_archive.database.models import Category as CategoryModel, Owner as OwnerModel, OSS as OSSModel
 from oss_archive.database import helpers as db_helpers
-from oss_archive.seeders.json import seed_json
+from oss_archive.seeders.json import seed_all as seed_all_json
 from oss_archive.seeders.sources import github as github_source, codeberg as codeberg_source
 from oss_archive.seeders.forgejo import create_org_for_mirrors, is_oss_mirrored, mirror_oss, DEFAULT_MIRROR_INTERVAL
 from oss_archive.components.forgejo.schema import MigrateRepoReqBody, ServiceEnum
 
-async def seed(db: Session):
+async def initialize_all_seed_ops(db: Session):
     ### Make requests to outer APIs async, but the seeding operation can by sync
     # Steps:
     # 1 - We seed data in json-archive first to the database
-    _ = await seed_json(db)   
+    _ = await seed_all_json(db)   
+    #
+    owners = await db_helpers.get_all_owners(sync_db=db)
+    if owners is None or len(owners) == 0:
+        return
+    if ENV == "dev": # if we're in development limit them to 10 OSS only.
+        owners = owners[:3]
+
     # 2 -  Pull owners and start using each item to seed OSS into oss_table    
-    _ = await seed_owners_oss(db)
+    _ = await seed_owners_oss(owners, db)
 
     # 3 - After that we should create "mirrors" user in forgejo if it doesn't exist
     is_org_for_mirrors_created = await create_org_for_mirrors()
@@ -28,22 +36,19 @@ async def seed(db: Session):
     return
 
 
-async def seed_owners_oss(db: Session):
-    owners = await db_helpers.get_all_owners(sync_db=db)
-    if owners is None or len(owners) == 0:
-        return
 
-    for owner in owners:
+async def seed_owners_oss(owners: Sequence[OwnerModel], db: Session):
+    try:
+        for owner in owners:
+            logger.info(f"Owner:{owner.name} is in {owner.main_category}")
+            _ = await seed_owner_oss_from_source(owner, db)
+            # Sleep 0.5 seconds to prevent source's rate-limit
+            sleep(0.5)
+        return True
+    except Exception:
+        logger.error("Couldn't seed Owners's OSS")
+        return False
 
-        # So that we limit owners seeded while testing.
-        if ENV == "dev" and owner.main_category_key not in ["ai", "prog_awe"]:
-            continue
-        
-        logger.info(f"Owner is in {owner.main_category}")
-        _ = await seed_owner_oss_from_source(owner, db)
-        # Sleep 0.5 seconds to prevent source's rate-limit
-        sleep(0.5)
-    return
 
 async def seed_owner_oss_from_source(owner: OwnerModel, db: Session): #-> Owner:
     match owner.source:
@@ -55,6 +60,7 @@ async def seed_owner_oss_from_source(owner: OwnerModel, db: Session): #-> Owner:
         case _:
             logger.error("Unkown OSS source", owner=owner)
             return None
+
 
 async def mirror_all_oss(db: Session):
     oss_list = await db_helpers.get_all_oss(sync_db=db)
