@@ -15,6 +15,8 @@ class SearchOwnersQueries(BaseModel):
     type: Annotated[general.OwnerTypeEnum | None, Field(default=None, examples=[general.OwnerTypeEnum.Organization])]
     source: Annotated[str | None, Field(default=None, max_length=256, examples=["github"])]
 
+    limit: Annotated[int, Field(default=100, gt=0, le=100)]
+    offset: Annotated[int, Field(default=0, ge=0)]
 
 class GetOwner_Res(
     owner.DescriptiveSchema,

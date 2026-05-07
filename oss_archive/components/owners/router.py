@@ -33,7 +33,6 @@ async def get_owners(queries: Annotated[api_schemas.SharedQueriesForGetAllReques
             count_resp = await db.execute(select(func.count()).select_from(OwnerModel))
             count = count_resp.scalar() or 0
 
-
         return api_schemas.GetAll_Res[owner_schemas.DescriptiveSchema](data=owners, offset=queries.offset, limit=queries.limit, total_count=count)
 
     except Exception as e:
@@ -43,28 +42,42 @@ async def get_owners(queries: Annotated[api_schemas.SharedQueriesForGetAllReques
 @router.get(
     "/owners/search",
     status_code=status.HTTP_200_OK,
-    response_model=list[component_schemas.GetOwner_Res],
+    response_model=api_schemas.GetAll_Res[owner_schemas.DescriptiveSchema],
     response_model_exclude_none=True
 )
 async def search_owners(queries: Annotated[component_schemas.SearchOwnersQueries, Query()], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        stmt = select(OwnerModel)
+        data_stmt = select(OwnerModel)
+        count_stmt = select(func.count()).select_from(OwnerModel)
+
         if queries.id is not None:
-            stmt = stmt.where(OwnerModel.id == queries.id)
+            data_stmt = data_stmt.where(OwnerModel.id == queries.id)
+            count_stmt = count_stmt.where(OwnerModel.id == queries.id)
         if queries.username is not None:
-            stmt = stmt.where(OwnerModel.username == queries.username)
+            data_stmt = data_stmt.where(OwnerModel.username == queries.username)
+            count_stmt = count_stmt.where(OwnerModel.username == queries.username)
         if queries.priority is not None:
-            stmt = stmt.where(OwnerModel.priority == queries.priority)
+            data_stmt = data_stmt.where(OwnerModel.priority == queries.priority)
+            count_stmt = count_stmt.where(OwnerModel.priority == queries.priority)
         if queries.type is not None:
-            stmt = stmt.where(OwnerModel.type == queries.type)
+            data_stmt = data_stmt.where(OwnerModel.type == queries.type)
+            count_stmt = count_stmt.where(OwnerModel.type == queries.type)
         if queries.source is not None:
-            stmt = stmt.where(OwnerModel.source == queries.source)
+            data_stmt = data_stmt.where(OwnerModel.source == queries.source)
+            count_stmt = count_stmt.where(OwnerModel.source == queries.source)
 
+        data_stmt = data_stmt.offset(queries.offset).limit(queries.limit)  
 
-        res = await db.scalars(stmt)
-        owner = res.unique()
+        resp = await db.scalars(data_stmt)
+        res = resp.unique().all()
+        owners: list[owner_schemas.DescriptiveSchema] =  [owner_schemas.DescriptiveSchema.model_validate(item, from_attributes=True) for item in list(res)]
 
-        return owner
+        count = 0
+        if len(owners) != 0:
+            count_resp = await db.execute(count_stmt)
+            count = count_resp.scalar() or 0
+
+        return api_schemas.GetAll_Res[owner_schemas.DescriptiveSchema](data=owners, total_count=count, offset=queries.offset, limit=queries.limit)
     except exc.NoResultFound:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Owner is not found!")
     except Exception:
