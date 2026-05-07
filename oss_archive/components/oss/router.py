@@ -29,8 +29,10 @@ async def get_all_oss(queries: Annotated[api_schemas.SharedQueriesForGetAllReque
         result = resp.all()
         all_oss: list[oss_schemas.DescriptiveSchema] =  [oss_schemas.DescriptiveSchema.model_validate(item, from_attributes=True) for item in list(result)]
 
-        count_resp = await db.execute(select(func.count()).select_from(OSSModel))
-        count =  count_resp.scalar()
+        count = 0
+        if len(all_oss) != 0:
+            count_resp = await db.execute(select(func.count()).select_from(OSSModel))
+            count = count_resp.scalar() or 0
 
         return api_schemas.GetAll_Res[oss_schemas.DescriptiveSchema](data=all_oss, offset=queries.offset, limit=queries.limit, total_count=count)
     except Exception as e:
@@ -82,7 +84,7 @@ async def search_oss(queries: Annotated[component_schemas.SearchOSSQueries, Quer
         count = 0
         if len(oss) != 0:
             count_resp = await db.execute(count_stmt)
-            count = count_resp.scalar()
+            count = count_resp.scalar() or 0
 
         return api_schemas.GetAll_Res[oss_schemas.DescriptiveSchema](data=oss, total_count=count, offset=queries.offset, limit=queries.limit)
 
