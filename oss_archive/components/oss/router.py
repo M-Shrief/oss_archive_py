@@ -40,7 +40,7 @@ async def get_all_oss(queries: Annotated[api_schemas.SharedQueriesForGetAllReque
 @router.get(
     "/oss/search",
     status_code=status.HTTP_200_OK,
-    response_model=list[component_schemas.GetOSSByID_Res],
+    response_model=list[component_schemas.GetOSS_Res],
     response_model_exclude_none=True
 )
 async def search_oss(queries: Annotated[component_schemas.SearchOSSQueries, Query()], db: Annotated[AsyncSession, Depends(get_async_db)]):
@@ -75,7 +75,7 @@ async def search_oss(queries: Annotated[component_schemas.SearchOSSQueries, Quer
 @router.get(
     "/oss/{id}",
     status_code=status.HTTP_200_OK,
-    response_model=component_schemas.GetOSSByID_Res,
+    response_model=component_schemas.GetOSS_Res,
     response_model_exclude_none=True
 )
 async def get_oss_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)]):

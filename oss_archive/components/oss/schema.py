@@ -6,6 +6,8 @@ from typing import Annotated
 from uuid import UUID
 ###
 from oss_archive.schemas import oss,  general
+
+
 class SearchOSSQueries(BaseModel):
     model_config = {"extra": "forbid"} # Forbid adding other queries
 
@@ -18,9 +20,7 @@ class SearchOSSQueries(BaseModel):
     development_status: Annotated[bool | None, Field(default=None)]
 
 
-
-
-class GetOSSByID_Res(
+class GetOSS_Res(
     oss.DescriptiveSchema
     ):
     pass
