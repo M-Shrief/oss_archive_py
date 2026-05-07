@@ -1,9 +1,18 @@
 
 from pydantic import Field, BaseModel
 from typing import Annotated
+from uuid import UUID
 # ###
 from oss_archive.schemas import owner, category, general
 
+
+class SearchOwnersQueries(BaseModel):
+    model_config = {"extra": "forbid"} # Forbid adding other queries
+
+    id: Annotated[UUID | None, Field(default=None)]
+    username: Annotated[str | None, Field(default=None)]
+    type: Annotated[general.OwnerTypeEnum | None, Field(default=None, examples=[general.OwnerTypeEnum.Organization])]
+    source: Annotated[str | None, Field(default=None, max_length=256, examples=["github"])]
 
 
 class GetOwnerByID_Res(
