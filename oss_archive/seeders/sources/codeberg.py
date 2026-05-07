@@ -76,7 +76,7 @@ async def seed_oss(owner: OwnerModel, repo_dict: dict[str, Any], db: Session):
 async def get_repos_from_source(owner: OwnerModel):
     match owner.type:
         case general_schemas.OwnerTypeEnum.Organization:
-            res = await httpx.async_get(base_url=f"{API_BASE_URL}", endpoint=f"/orgs/{owner.username}/repos")
+            res = await httpx.async_get(base_url=API_BASE_URL, endpoint=f"/orgs/{owner.username}/repos")
         case general_schemas.OwnerTypeEnum.Individual:
             logger.error("Can't get Individual data without authentication token")
             return None

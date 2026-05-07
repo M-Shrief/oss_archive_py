@@ -7,7 +7,7 @@ from oss_archive.utils.logger import logger
 from oss_archive.database.models import Category as CategoryModel, Owner as OwnerModel, OSS as OSSModel
 from oss_archive.database import helpers as db_helpers
 from oss_archive.seeders.json import seed_all as seed_all_json
-from oss_archive.seeders.sources import github as github_source, codeberg as codeberg_source
+from oss_archive.seeders.sources import github as github_source, codeberg as codeberg_source, huggingface as huggingface_source
 from oss_archive.seeders.forgejo import create_org_for_mirrors, create_migrate_repo_req_body, is_oss_mirrored, mirror_oss, DEFAULT_MIRROR_INTERVAL
 
 async def initialize_all_seed_ops(db: Session):
@@ -55,6 +55,8 @@ async def seed_owner_oss_from_source(owner: OwnerModel, db: Session): #-> Owner:
             return await github_source.seed_owner_oss(owner, db)
         case "codeberg":
             return await codeberg_source.seed_owner_oss(owner, db)
+        # case "huggingface":
+        #     return await huggingface_source.seed_owner_oss(owner, db)
         # Defualt None value for unknown sources.
         case _:
             logger.error("Unkown OSS source", owner=owner)
