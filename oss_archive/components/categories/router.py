@@ -44,25 +44,38 @@ async def get_categories(queries: Annotated[api_schemas.SharedQueriesForGetAllRe
 @router.get(
     "/categories/search",
     status_code=status.HTTP_200_OK,
-    response_model=list[component_schemas.GetCategory_Res],
+    response_model=api_schemas.GetAll_Res[category_schemas.DescriptiveSchema],
     response_model_exclude_none=True
 )
 async def search_category(queries: Annotated[component_schemas.SearchCategoriesQueries, Query()], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        stmt = select(CategoryModel)
-        
+        data_stmt = select(CategoryModel)
+        count_stmt = select(func.count()).select_from(CategoryModel)
+
         if queries.key is not None:
-            stmt = stmt.where(CategoryModel.key == queries.key)
+            data_stmt = data_stmt.where(CategoryModel.key == queries.key)
+            count_stmt = count_stmt.where(CategoryModel.key == queries.key)
         if queries.name is not None:
-            stmt = stmt.where(CategoryModel.name == queries.name)
+            data_stmt = data_stmt.where(CategoryModel.name == queries.name)
+            count_stmt = count_stmt.where(CategoryModel.name == queries.name)
         if queries.priority is not None:
-            stmt = stmt.where(CategoryModel.priority == queries.priority)
+            data_stmt = data_stmt.where(CategoryModel.priority == queries.priority)
+            count_stmt = count_stmt.where(CategoryModel.priority == queries.priority)
+
+        data_stmt = data_stmt.offset(queries.offset).limit(queries.limit)  
+
+        resp = await db.scalars(statement=data_stmt)
+        res = resp.unique().all()
+        categories: list[category_schemas.DescriptiveSchema] =  [category_schemas.DescriptiveSchema.model_validate(item, from_attributes=True) for item in list(res)]
+        
+        count = 0
+        if len(categories) != 0:
+            count_resp = await db.execute(count_stmt)
+            count = count_resp.scalar() or 0
 
 
-        res = await db.scalars(statement=stmt)
-        categories = res.unique()
+        return api_schemas.GetAll_Res[category_schemas.DescriptiveSchema](data=categories, offset=queries.offset, limit=queries.limit, total_count=count)
 
-        return categories
     except exc.NoResultFound:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category is not found!")
     except Exception as e:
