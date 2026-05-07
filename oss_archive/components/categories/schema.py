@@ -5,12 +5,20 @@ from typing import Annotated
 from oss_archive.schemas import category, general , owner, oss
 
 
+class SearchCategoriesQueries(BaseModel):
+    model_config = {"extra": "forbid"} # Forbid adding other queries
 
-class GetCategoryByKey_Res(
+    key: Annotated[str | None, Field(default=None)]
+    name: Annotated[str | None, Field(default=None)]
+    priority: Annotated[int | None, Field(default=None)]
+
+
+class GetCategory_Res(
     category.DescriptiveSchema
     ):
-    main_oss: list[oss.MinimalSchema]
-    owners: list[owner.MinimalSchema]
+    pass
+    # main_oss: list[oss.MinimalSchema]
+    # owners: list[owner.MinimalSchema]
 
 class CreateCategory_Req(
     category.KeyField,

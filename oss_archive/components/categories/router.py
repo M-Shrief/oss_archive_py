@@ -39,9 +39,37 @@ async def get_categories(queries: Annotated[api_schemas.SharedQueriesForGetAllRe
 
 
 @router.get(
+    "/categories/search",
+    status_code=status.HTTP_200_OK,
+    response_model=list[component_schemas.GetCategory_Res],
+    response_model_exclude_none=True
+)
+async def search_category(queries: Annotated[component_schemas.SearchCategoriesQueries, Query()], db: Annotated[AsyncSession, Depends(get_async_db)]):
+    try:
+        stmt = select(CategoryModel)
+        
+        if queries.key is not None:
+            stmt = select(CategoryModel).where(CategoryModel.key == queries.key)
+        if queries.name is not None:
+            stmt = select(CategoryModel).where(CategoryModel.name == queries.name)
+        if queries.priority is not None:
+            stmt = select(CategoryModel).where(CategoryModel.priority == queries.priority)
+
+
+        res = await db.scalars(statement=stmt)
+        categories = res.unique()
+
+        return categories
+    except exc.NoResultFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category is not found!")
+    except Exception as e:
+        logger.error("Error when getting a category by key", error=e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
+
+@router.get(
     "/categories/{key}",
     status_code=status.HTTP_200_OK,
-    response_model=component_schemas.GetCategoryByKey_Res,
+    response_model=component_schemas.GetCategory_Res,
     response_model_exclude_none=True
 )
 async def get_category_by_key(key: str, db: Annotated[AsyncSession, Depends(get_async_db)]):
