@@ -15,7 +15,7 @@ class SearchOwnersQueries(BaseModel):
     source: Annotated[str | None, Field(default=None, max_length=256, examples=["github"])]
 
 
-class GetOwnerByID_Res(
+class GetOwner_Res(
     owner.DescriptiveSchema,
     ):
     pass

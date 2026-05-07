@@ -41,7 +41,7 @@ async def get_owners(queries: Annotated[api_schemas.SharedQueriesForGetAllReques
 @router.get(
     "/owners/search",
     status_code=status.HTTP_200_OK,
-    response_model=list[component_schemas.GetOwnerByID_Res],
+    response_model=list[component_schemas.GetOwner_Res],
     response_model_exclude_none=True
 )
 async def search_owners(queries: Annotated[component_schemas.SearchOwnersQueries, Query()], db: Annotated[AsyncSession, Depends(get_async_db)]):
@@ -70,7 +70,7 @@ async def search_owners(queries: Annotated[component_schemas.SearchOwnersQueries
 @router.get(
     "/owners/{id}",
     status_code=status.HTTP_200_OK,
-    response_model=component_schemas.GetOwnerByID_Res,
+    response_model=component_schemas.GetOwner_Res,
     response_model_exclude_none=True
 )
 async def get_owner_by_id(id: UUID, db: Annotated[AsyncSession, Depends(get_async_db)]):
