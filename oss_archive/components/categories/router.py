@@ -52,11 +52,11 @@ async def search_category(queries: Annotated[component_schemas.SearchCategoriesQ
         stmt = select(CategoryModel)
         
         if queries.key is not None:
-            stmt = select(CategoryModel).where(CategoryModel.key == queries.key)
+            stmt = stmt.where(CategoryModel.key == queries.key)
         if queries.name is not None:
-            stmt = select(CategoryModel).where(CategoryModel.name == queries.name)
+            stmt = stmt.where(CategoryModel.name == queries.name)
         if queries.priority is not None:
-            stmt = select(CategoryModel).where(CategoryModel.priority == queries.priority)
+            stmt = stmt.where(CategoryModel.priority == queries.priority)
 
 
         res = await db.scalars(statement=stmt)
