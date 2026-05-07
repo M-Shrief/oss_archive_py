@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, exc, delete, func
 from sqlalchemy.orm import joinedload
 from uuid import UUID
-from typing import Annotated
+from typing import Annotated, Any
 ###
 from oss_archive.database.index import get_async_db
 from oss_archive.database.models import OSS as OSSModel
@@ -40,31 +40,52 @@ async def get_all_oss(queries: Annotated[api_schemas.SharedQueriesForGetAllReque
 @router.get(
     "/oss/search",
     status_code=status.HTTP_200_OK,
-    response_model=list[component_schemas.GetOSS_Res],
+    response_model=api_schemas.GetAll_Res[oss_schemas.DescriptiveSchema],
     response_model_exclude_none=True
 )
 async def search_oss(queries: Annotated[component_schemas.SearchOSSQueries, Query()], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        stmt = select(OSSModel)
+        data_stmt = select(OSSModel)
+        count_stmt = select(func.count()).select_from(OSSModel)
         if queries.id is not None:
-            stmt = select(OSSModel).where(OSSModel.id == queries.id)
+            data_stmt = data_stmt.where(OSSModel.id == queries.id)
+            count_stmt = count_stmt.where(OSSModel.id == queries.id)
         if queries.repo_name is not None:
-            stmt = select(OSSModel).where(OSSModel.repo_name == queries.repo_name)
-        if queries.owner_username is not None:
-            stmt = select(OSSModel).where(OSSModel.owner_username == queries.owner_username)
+            data_stmt = data_stmt.where(OSSModel.repo_name == queries.repo_name)
+            count_stmt = count_stmt.where(OSSModel.repo_name == queries.repo_name)
         if queries.fullname is not None:
-            stmt = select(OSSModel).where(OSSModel.fullname == queries.fullname)
+            data_stmt = data_stmt.where(OSSModel.fullname == queries.fullname)
+            count_stmt = count_stmt.where(OSSModel.fullname == queries.fullname)
+        if queries.owner_username is not None:
+            data_stmt = data_stmt.where(OSSModel.owner_username == queries.owner_username)
+            count_stmt = count_stmt.where(OSSModel.owner_username == queries.owner_username)
+        if queries.category_key is not None:
+            data_stmt = data_stmt.where(OSSModel.main_category_key == queries.category_key)
+            count_stmt = count_stmt.where(OSSModel.main_category_key == queries.category_key)
         if queries.priority is not None:
-            stmt = select(OSSModel).where(OSSModel.priority == queries.priority)
+            data_stmt = data_stmt.where(OSSModel.priority == queries.priority)
+            count_stmt = count_stmt.where(OSSModel.priority == queries.priority)
         if queries.is_mirrored is not None:
-            stmt = select(OSSModel).where(OSSModel.is_mirrored == queries.is_mirrored)
+            data_stmt = data_stmt.where(OSSModel.is_mirrored == queries.is_mirrored)
+            count_stmt = count_stmt.where(OSSModel.is_mirrored == queries.is_mirrored)
         if queries.development_status is not None:
-            stmt = select(OSSModel).where(OSSModel.development_status == queries.development_status)
+            data_stmt = data_stmt.where(OSSModel.development_status == queries.development_status)
+            count_stmt = count_stmt.where(OSSModel.development_status == queries.development_status)
+
+
+        data_stmt = data_stmt.offset(queries.offset).limit(queries.limit)  
         
-        
-        res = await db.scalars(statement=stmt)
-        oss = res.unique()
-        return oss
+        resp = await db.scalars(statement=data_stmt)
+        res = resp.unique().all()
+        oss: list[oss_schemas.DescriptiveSchema] =  [oss_schemas.DescriptiveSchema.model_validate(item, from_attributes=True) for item in list(res)]
+
+        count = 0
+        if len(oss) != 0:
+            count_resp = await db.execute(count_stmt)
+            count = count_resp.scalar()
+
+        return api_schemas.GetAll_Res[oss_schemas.DescriptiveSchema](data=oss, total_count=count, offset=queries.offset, limit=queries.limit)
+
     except exc.NoResultFound:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="OSS is not found!")
     except Exception as e:
