@@ -1,3 +1,4 @@
 # Roadmap
 
-- We need to provide the ability to share projects as Zip files, and maybe it'll be better when we want to distribute the files over multiple machines then we can extract them and then we can use `git pull`, and it'll be useful when we offer them on torrent. (naming convention is the same with oss.fullanme file but it's a Zip file.)
+- We need to provide the ability to share projects as Zip files, and maybe it'll be better when we want to distribute the files over multiple machines then we can extract them and then we can use `git pull`, and it'll be useful when we offer them on torrent. (naming convention is the same with oss.fullanme file but it's a Zip file). **Note**: regular .zip files in forgejo doesn't give you the .git file, we want to add it ourselves with the remote.origin set to the original clone_url.
+- Personal use well only be limited to getting the right data to our database, with very limitted archiving for repos as I've very low bandwidth. but we'll try to do the lowest number of operation to satisfy our testing for the project.

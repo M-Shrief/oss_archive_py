@@ -2,3 +2,4 @@
 - We can add a hook, so every time we update the mirror we recompress the OSS, so that we can use torrent to share it as zip.
 - when adding a new repo, we search the fullname, if an equal repo appear we show an error, and refere the user to the existing repo.
 - Bulk insert, like inserting all repos in a github profile are used as a function but we don't design the database's entities/tables for that.
+- Add OSS's clone_LFS: bool attribute, to decide if we'll download big files or not. this very important because of AI project and their open-weight files
