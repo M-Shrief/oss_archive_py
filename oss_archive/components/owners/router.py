@@ -27,10 +27,12 @@ async def get_owners(queries: Annotated[api_schemas.SharedQueriesForGetAllReques
         resp  = await db.scalars(statement=stmt)
         result = resp.all()
         owners: list[owner_schemas.DescriptiveSchema] =  [owner_schemas.DescriptiveSchema.model_validate(item, from_attributes=True) for item in list(result)]
+        
+        count = 0
+        if len(owners) != 0:
+            count_resp = await db.execute(select(func.count()).select_from(OwnerModel))
+            count = count_resp.scalar() or 0
 
-
-        count_resp = await db.execute(select(func.count()).select_from(OwnerModel))
-        count =  count_resp.scalar()
 
         return api_schemas.GetAll_Res[owner_schemas.DescriptiveSchema](data=owners, offset=queries.offset, limit=queries.limit, total_count=count)
 

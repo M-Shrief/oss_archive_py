@@ -27,9 +27,12 @@ async def get_categories(queries: Annotated[api_schemas.SharedQueriesForGetAllRe
         resp  = await db.scalars(statement=stmt)
         result = resp.all()
         categories: list[category_schemas.DescriptiveSchema] =  [category_schemas.DescriptiveSchema.model_validate(item, from_attributes=True) for item in list(result)]
+        
+        count = 0
+        if len(categories) != 0:
+            count_resp = await db.execute(select(func.count()).select_from(CategoryModel))
+            count = count_resp.scalar() or 0
 
-        count_resp = await db.execute(select(func.count()).select_from(CategoryModel))
-        count =  count_resp.scalar()
 
         return api_schemas.GetAll_Res[category_schemas.DescriptiveSchema](data=categories, offset=queries.offset, limit=queries.limit, total_count=count)
 

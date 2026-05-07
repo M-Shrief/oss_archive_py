@@ -26,7 +26,7 @@ DataType = TypeVar('DataType')
 
 class GetAll_Res(BaseModel, Generic[DataType]):
     data: Annotated[list[DataType], Field()]
-    total_count: Annotated[int | None, Field(default=None)]
+    total_count: Annotated[int, Field(default=0)]
     offset: Annotated[int, Field()]
     limit: Annotated[int, Field()]
 
