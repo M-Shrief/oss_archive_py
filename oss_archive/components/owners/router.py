@@ -49,11 +49,13 @@ async def search_owners(queries: Annotated[component_schemas.SearchOwnersQueries
         stmt = select(OwnerModel)
         if queries.id is not None:
             stmt = stmt.where(OwnerModel.id == queries.id)
-        elif queries.username is not None:
+        if queries.username is not None:
             stmt = stmt.where(OwnerModel.username == queries.username)
-        elif queries.type is not None:
+        if queries.priority is not None:
+            stmt = stmt.where(OwnerModel.priority == queries.priority)
+        if queries.type is not None:
             stmt = stmt.where(OwnerModel.type == queries.type)
-        elif queries.source is not None:
+        if queries.source is not None:
             stmt = stmt.where(OwnerModel.source == queries.source)
 
 

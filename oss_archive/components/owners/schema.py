@@ -11,6 +11,7 @@ class SearchOwnersQueries(BaseModel):
 
     id: Annotated[UUID | None, Field(default=None)]
     username: Annotated[str | None, Field(default=None)]
+    priority: Annotated[int | None, Field(default=None)]
     type: Annotated[general.OwnerTypeEnum | None, Field(default=None, examples=[general.OwnerTypeEnum.Organization])]
     source: Annotated[str | None, Field(default=None, max_length=256, examples=["github"])]
 
