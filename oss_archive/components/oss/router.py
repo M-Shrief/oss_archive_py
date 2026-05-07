@@ -37,6 +37,40 @@ async def get_all_oss(queries: Annotated[api_schemas.SharedQueriesForGetAllReque
         logger.error("Error when getting all OSS", error=e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
 
+@router.get(
+    "/oss/search",
+    status_code=status.HTTP_200_OK,
+    response_model=list[component_schemas.GetOSSByID_Res],
+    response_model_exclude_none=True
+)
+async def search_oss(queries: Annotated[component_schemas.SearchOSSQueries, Query()], db: Annotated[AsyncSession, Depends(get_async_db)]):
+    try:
+        stmt = select(OSSModel)
+        if queries.id is not None:
+            stmt = select(OSSModel).where(OSSModel.id == queries.id)
+        if queries.repo_name is not None:
+            stmt = select(OSSModel).where(OSSModel.repo_name == queries.repo_name)
+        if queries.owner_username is not None:
+            stmt = select(OSSModel).where(OSSModel.owner_username == queries.owner_username)
+        if queries.fullname is not None:
+            stmt = select(OSSModel).where(OSSModel.fullname == queries.fullname)
+        if queries.priority is not None:
+            stmt = select(OSSModel).where(OSSModel.priority == queries.priority)
+        if queries.is_mirrored is not None:
+            stmt = select(OSSModel).where(OSSModel.is_mirrored == queries.is_mirrored)
+        if queries.development_status is not None:
+            stmt = select(OSSModel).where(OSSModel.development_status == queries.development_status)
+        
+        
+        res = await db.scalars(statement=stmt)
+        oss = res.unique()
+        return oss
+    except exc.NoResultFound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="OSS is not found!")
+    except Exception as e:
+        logger.error("Error when getting OSS by id", error=e)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
+
 
 @router.get(
     "/oss/{id}",

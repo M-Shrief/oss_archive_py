@@ -3,8 +3,22 @@
 """
 from pydantic import BaseModel, Field
 from typing import Annotated
+from uuid import UUID
 ###
 from oss_archive.schemas import oss,  general
+class SearchOSSQueries(BaseModel):
+    model_config = {"extra": "forbid"} # Forbid adding other queries
+
+    id: Annotated[UUID | None, Field(default=None)]
+    repo_name: Annotated[str | None, Field(default=None)]
+    owner_username: Annotated[str | None, Field(default=None)]
+    fullname: Annotated[str | None, Field(default=None)]
+    priority: Annotated[int | None, Field(default=None)]
+    is_mirrored: Annotated[bool | None, Field(default=None)]
+    development_status: Annotated[bool | None, Field(default=None)]
+
+
+
 
 class GetOSSByID_Res(
     oss.DescriptiveSchema
