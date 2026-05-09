@@ -93,6 +93,7 @@ class OSS(PriorityField, Base):
     is_mirrored: Mapped[bool] = mapped_column(Boolean(), default=False) # did we mirror it?
     development_status: Mapped[DevelopmentStatusEnum] = mapped_column(Enum(DevelopmentStatusEnum, name="development_status_enum", native_enum=True), nullable=False, default=DevelopmentStatusEnum.Ongoing)
     development_started_at: Mapped[datetime | None] = mapped_column(DateTime(), nullable=True) # Source's Timestamps, it's Date the oss's repo was created/started
+    mirror_lfs: Mapped[bool] = mapped_column(Boolean(), default=False) # did we mirror it?
     # URLs
     html_url: Mapped[str | None] = mapped_column(String(length=256), nullable=True) ### oss page (html page)
     clone_url: Mapped[str | None] = mapped_column(String(length=256), nullable=True) ### git clone's URL

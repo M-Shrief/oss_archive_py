@@ -70,6 +70,7 @@ class UpdateOSS_Req(
     oss.IsMirroredField_Optional,
     oss.DevelopmentStatusField_Optional,
     oss.DevelopmentStartedAtField_Optional,
+    oss.MirrorLFSField_Optional,
     oss.HTMLURLField_Optional,
     oss.CloneURLField_Optional,
     general.MainCategoryKeyField_Optional,

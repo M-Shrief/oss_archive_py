@@ -46,6 +46,12 @@ class DevelopmentStartedAtField(BaseModel):
 class DevelopmentStartedAtField_Optional(BaseModel):
     development_started_at: Annotated[datetime | None, Field(default=None)]
 
+class MirrorLFSField(BaseModel):
+    mirror_lfs: Annotated[bool, Field(default=False)]
+
+class MirrorLFSField_Optional(BaseModel):
+    mirror_lfs: Annotated[bool | None, Field(default=None)]
+
 class HTMLURLField(BaseModel):
     html_url: Annotated[str, Field(examples=["https://github.com/deepseek-ai/DeepSeek-VL"])]
 
@@ -69,6 +75,7 @@ class FullSchema(
     IsMirroredField,
     DevelopmentStatusField,
     DevelopmentStartedAtField,
+    MirrorLFSField,
     HTMLURLField,
     CloneURLField,
     general.CreatedAtField,
@@ -89,6 +96,7 @@ class DescriptiveSchema(
     IsMirroredField,
     DevelopmentStatusField,
     DevelopmentStartedAtField,
+    MirrorLFSField,
     HTMLURLField,
     CloneURLField,
     # Relations
@@ -115,6 +123,7 @@ class JSONSchema(
     IsMirroredField,
     DevelopmentStatusField,
     DevelopmentStartedAtField,
+    MirrorLFSField,
     HTMLURLField,
     CloneURLField,
     # Relations
