@@ -23,7 +23,7 @@ router = APIRouter(tags=["Categories"])
 )
 async def get_categories(queries: Annotated[api_schemas.SharedQueriesForGetAllRequests, Query()], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try: #
-        stmt = select(CategoryModel, func.count(CategoryModel.key).over().label('total')).offset(queries.offset).limit(queries.limit)
+        stmt = select(CategoryModel, func.count().over().label('total')).offset(queries.offset).limit(queries.limit)
 
         resp  = await db.execute(stmt)
         rows = resp.all()
@@ -47,7 +47,7 @@ async def get_categories(queries: Annotated[api_schemas.SharedQueriesForGetAllRe
 )
 async def search_category(queries: Annotated[component_schemas.SearchCategoriesQueries, Query()], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        data_stmt = select(CategoryModel, func.count(CategoryModel.key).over().label('total'))
+        data_stmt = select(CategoryModel, func.count().over().label('total'))
 
         if queries.key is not None:
             data_stmt = data_stmt.where(CategoryModel.key == queries.key)
