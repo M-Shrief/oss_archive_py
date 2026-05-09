@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, exc, delete, func
-from typing import Annotated
+from typing import Annotated, Any, Literal
 
 from sqlalchemy.orm import joinedload
 ###
@@ -18,24 +18,22 @@ router = APIRouter(tags=["Categories"])
 @router.get(
     "/categories",
     status_code=status.HTTP_200_OK,
-    response_model=api_schemas.GetAll_Res[category_schemas.DescriptiveSchema],
+    # response_model=api_schemas.GetAll_Res[category_schemas.DescriptiveSchema],
     response_model_exclude_none=True,
 )
 async def get_categories(queries: Annotated[api_schemas.SharedQueriesForGetAllRequests, Query()], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try: #
-        stmt = select(CategoryModel).offset(queries.offset).limit(queries.limit)
-        resp  = await db.scalars(statement=stmt)
-        result = resp.all()
-        categories: list[category_schemas.DescriptiveSchema] =  [category_schemas.DescriptiveSchema.model_validate(item, from_attributes=True) for item in list(result)]
-        
-        count = 0
-        if len(categories) != 0:
-            count_resp = await db.execute(select(func.count()).select_from(CategoryModel))
-            count = count_resp.scalar() or 0
+        stmt = select(CategoryModel, func.count(CategoryModel.key).over().label('total')).offset(queries.offset).limit(queries.limit)
 
+        resp  = await db.execute(stmt)
+        rows = resp.all()
 
-        return api_schemas.GetAll_Res[category_schemas.DescriptiveSchema](data=categories, offset=queries.offset, limit=queries.limit, total_count=count)
+        total_count: int | Literal[0] = rows[1].total if rows else 0 # note: using 0 or 1 is the same, as count().over()...etc returns total_count with every row
+        # We can get the data by: data = [row[0] for row in rows], 
+        # but we merge fetching the data & validation in the same step.
+        categories =  [category_schemas.DescriptiveSchema.model_validate(row[0], from_attributes=True) for row in list(rows)]
 
+        return api_schemas.GetAll_Res[category_schemas.DescriptiveSchema](data=categories, total_count=total_count, offset=queries.offset, limit=queries.limit)
     except Exception as e:
         logger.error("Error when getting categories", error=e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
