@@ -60,7 +60,7 @@ async def search_owners(queries: Annotated[component_schemas.SearchOwnersQueries
         stmt = stmt.offset(queries.offset).limit(queries.limit)  
 
         resp  = await db.execute(statement=stmt)
-        result = resp.all()
+        result = resp.unique().all()
 
         total_count: int = result[1].total if result else 0 
         owners: list[owner_schemas.DescriptiveSchema] =  [owner_schemas.DescriptiveSchema.model_validate(item[0], from_attributes=True) for item in list(result)]
