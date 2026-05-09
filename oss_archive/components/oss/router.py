@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, exc, delete, func
 from sqlalchemy.orm import joinedload
 from uuid import UUID
-from typing import Annotated, Any
+from typing import Annotated, Literal
 ###
 from oss_archive.database.index import get_async_db
 from oss_archive.database.models import OSS as OSSModel
@@ -24,17 +24,14 @@ router = APIRouter(tags=["OSS"])
 )
 async def get_all_oss(queries: Annotated[api_schemas.SharedQueriesForGetAllRequests, Query()], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        stmt = select(OSSModel).offset(queries.offset).limit(queries.limit)
-        resp = await db.scalars(statement=stmt)
+        stmt = select(OSSModel, func.count().over().label('total')).offset(queries.offset).limit(queries.limit)
+        resp  = await db.execute(statement=stmt)
         result = resp.all()
-        all_oss: list[oss_schemas.DescriptiveSchema] =  [oss_schemas.DescriptiveSchema.model_validate(item, from_attributes=True) for item in list(result)]
 
-        count = 0
-        if len(all_oss) != 0:
-            count_resp = await db.execute(select(func.count()).select_from(OSSModel))
-            count = count_resp.scalar() or 0
+        total_count: int = result[1].total if result else 0 
+        all_oss: list[oss_schemas.DescriptiveSchema] =  [oss_schemas.DescriptiveSchema.model_validate(item[0], from_attributes=True) for item in list(result)]
 
-        return api_schemas.GetAll_Res[oss_schemas.DescriptiveSchema](data=all_oss, offset=queries.offset, limit=queries.limit, total_count=count)
+        return api_schemas.GetAll_Res[oss_schemas.DescriptiveSchema](data=all_oss, offset=queries.offset, limit=queries.limit, total_count=total_count)
     except Exception as e:
         logger.error("Error when getting all OSS", error=e)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown error, try again later")
@@ -47,46 +44,34 @@ async def get_all_oss(queries: Annotated[api_schemas.SharedQueriesForGetAllReque
 )
 async def search_oss(queries: Annotated[component_schemas.SearchOSSQueries, Query()], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        data_stmt = select(OSSModel)
-        count_stmt = select(func.count()).select_from(OSSModel)
+        stmt = select(OSSModel, func.count().over().label('total'))
         if queries.id is not None:
-            data_stmt = data_stmt.where(OSSModel.id == queries.id)
-            count_stmt = count_stmt.where(OSSModel.id == queries.id)
+            stmt = stmt.where(OSSModel.id == queries.id)
         if queries.repo_name is not None:
-            data_stmt = data_stmt.where(OSSModel.repo_name == queries.repo_name)
-            count_stmt = count_stmt.where(OSSModel.repo_name == queries.repo_name)
+            stmt = stmt.where(OSSModel.repo_name == queries.repo_name)
         if queries.fullname is not None:
-            data_stmt = data_stmt.where(OSSModel.fullname == queries.fullname)
-            count_stmt = count_stmt.where(OSSModel.fullname == queries.fullname)
+            stmt = stmt.where(OSSModel.fullname == queries.fullname)
         if queries.owner_username is not None:
-            data_stmt = data_stmt.where(OSSModel.owner_username == queries.owner_username)
-            count_stmt = count_stmt.where(OSSModel.owner_username == queries.owner_username)
+            stmt = stmt.where(OSSModel.owner_username == queries.owner_username)
         if queries.category_key is not None:
-            data_stmt = data_stmt.where(OSSModel.main_category_key == queries.category_key)
-            count_stmt = count_stmt.where(OSSModel.main_category_key == queries.category_key)
+            stmt = stmt.where(OSSModel.main_category_key == queries.category_key)
         if queries.priority is not None:
-            data_stmt = data_stmt.where(OSSModel.priority == queries.priority)
-            count_stmt = count_stmt.where(OSSModel.priority == queries.priority)
+            stmt = stmt.where(OSSModel.priority == queries.priority)
         if queries.is_mirrored is not None:
-            data_stmt = data_stmt.where(OSSModel.is_mirrored == queries.is_mirrored)
-            count_stmt = count_stmt.where(OSSModel.is_mirrored == queries.is_mirrored)
+            stmt = stmt.where(OSSModel.is_mirrored == queries.is_mirrored)
         if queries.development_status is not None:
-            data_stmt = data_stmt.where(OSSModel.development_status == queries.development_status)
-            count_stmt = count_stmt.where(OSSModel.development_status == queries.development_status)
+            stmt = stmt.where(OSSModel.development_status == queries.development_status)
 
 
-        data_stmt = data_stmt.offset(queries.offset).limit(queries.limit)  
+        stmt = stmt.offset(queries.offset).limit(queries.limit)  
         
-        resp = await db.scalars(statement=data_stmt)
-        res = resp.unique().all()
-        oss: list[oss_schemas.DescriptiveSchema] =  [oss_schemas.DescriptiveSchema.model_validate(item, from_attributes=True) for item in list(res)]
+        resp  = await db.execute(statement=stmt)
+        result = resp.unique().all()
 
-        count = 0
-        if len(oss) != 0:
-            count_resp = await db.execute(count_stmt)
-            count = count_resp.scalar() or 0
+        total_count: int = result[1].total if result else 0 
+        all_oss: list[oss_schemas.DescriptiveSchema] =  [oss_schemas.DescriptiveSchema.model_validate(item[0], from_attributes=True) for item in list(result)]
 
-        return api_schemas.GetAll_Res[oss_schemas.DescriptiveSchema](data=oss, total_count=count, offset=queries.offset, limit=queries.limit)
+        return api_schemas.GetAll_Res[oss_schemas.DescriptiveSchema](data=all_oss, total_count=total_count, offset=queries.offset, limit=queries.limit)
 
     except exc.NoResultFound:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="OSS is not found!")
