@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, exc, delete, func
 from sqlalchemy.orm import joinedload, Session
 from uuid import UUID
-from typing import Annotated
+from typing import Annotated, Literal
 ###
 from oss_archive.utils.logger import logger
 from oss_archive.utils import json as json_utils
@@ -23,17 +23,14 @@ router = APIRouter(tags=["Owners"])
 )
 async def get_owners(queries: Annotated[api_schemas.SharedQueriesForGetAllRequests, Query()],db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        stmt = select(OwnerModel).offset(queries.offset).limit(queries.limit)
-        resp  = await db.scalars(statement=stmt)
+        stmt = select(OwnerModel, func.count().over().label('total')).offset(queries.offset).limit(queries.limit)
+        resp  = await db.execute(statement=stmt)
         result = resp.all()
-        owners: list[owner_schemas.DescriptiveSchema] =  [owner_schemas.DescriptiveSchema.model_validate(item, from_attributes=True) for item in list(result)]
-        
-        count = 0
-        if len(owners) != 0:
-            count_resp = await db.execute(select(func.count()).select_from(OwnerModel))
-            count = count_resp.scalar() or 0
 
-        return api_schemas.GetAll_Res[owner_schemas.DescriptiveSchema](data=owners, offset=queries.offset, limit=queries.limit, total_count=count)
+        total_count: int = result[1].total if result else 0 
+        owners: list[owner_schemas.DescriptiveSchema] =  [owner_schemas.DescriptiveSchema.model_validate(item[0], from_attributes=True) for item in list(result)]
+        
+        return api_schemas.GetAll_Res[owner_schemas.DescriptiveSchema](data=owners, offset=queries.offset, limit=queries.limit, total_count=total_count)
 
     except Exception as e:
         logger.error("Error when getting owners", error=e)
@@ -47,37 +44,28 @@ async def get_owners(queries: Annotated[api_schemas.SharedQueriesForGetAllReques
 )
 async def search_owners(queries: Annotated[component_schemas.SearchOwnersQueries, Query()], db: Annotated[AsyncSession, Depends(get_async_db)]):
     try:
-        data_stmt = select(OwnerModel)
-        count_stmt = select(func.count()).select_from(OwnerModel)
+        stmt = select(OwnerModel,  func.count().over().label('total'))
 
         if queries.id is not None:
-            data_stmt = data_stmt.where(OwnerModel.id == queries.id)
-            count_stmt = count_stmt.where(OwnerModel.id == queries.id)
+            stmt = stmt.where(OwnerModel.id == queries.id)
         if queries.username is not None:
-            data_stmt = data_stmt.where(OwnerModel.username == queries.username)
-            count_stmt = count_stmt.where(OwnerModel.username == queries.username)
+            stmt = stmt.where(OwnerModel.username == queries.username)
         if queries.priority is not None:
-            data_stmt = data_stmt.where(OwnerModel.priority == queries.priority)
-            count_stmt = count_stmt.where(OwnerModel.priority == queries.priority)
+            stmt = stmt.where(OwnerModel.priority == queries.priority)
         if queries.type is not None:
-            data_stmt = data_stmt.where(OwnerModel.type == queries.type)
-            count_stmt = count_stmt.where(OwnerModel.type == queries.type)
+            stmt = stmt.where(OwnerModel.type == queries.type)
         if queries.source is not None:
-            data_stmt = data_stmt.where(OwnerModel.source == queries.source)
-            count_stmt = count_stmt.where(OwnerModel.source == queries.source)
+            stmt = stmt.where(OwnerModel.source == queries.source)
 
-        data_stmt = data_stmt.offset(queries.offset).limit(queries.limit)  
+        stmt = stmt.offset(queries.offset).limit(queries.limit)  
 
-        resp = await db.scalars(data_stmt)
-        res = resp.unique().all()
-        owners: list[owner_schemas.DescriptiveSchema] =  [owner_schemas.DescriptiveSchema.model_validate(item, from_attributes=True) for item in list(res)]
+        resp  = await db.execute(statement=stmt)
+        result = resp.all()
 
-        count = 0
-        if len(owners) != 0:
-            count_resp = await db.execute(count_stmt)
-            count = count_resp.scalar() or 0
+        total_count: int = result[1].total if result else 0 
+        owners: list[owner_schemas.DescriptiveSchema] =  [owner_schemas.DescriptiveSchema.model_validate(item[0], from_attributes=True) for item in list(result)]
 
-        return api_schemas.GetAll_Res[owner_schemas.DescriptiveSchema](data=owners, total_count=count, offset=queries.offset, limit=queries.limit)
+        return api_schemas.GetAll_Res[owner_schemas.DescriptiveSchema](data=owners, total_count=total_count, offset=queries.offset, limit=queries.limit)
     except exc.NoResultFound:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Owner is not found!")
     except Exception:
