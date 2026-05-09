@@ -1,8 +1,0 @@
-{
-  "clone_addr": "https://github.com/deepseek-ai/awesome-deepseek-integration",
-  "repo_name": "awesome-deepseek-integration",
-  "repo_owner": "m-shrief",
-  "service": "github",
-  "mirror": true,
-  "mirror_interval": "168h0m0s"
-}
