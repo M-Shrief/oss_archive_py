@@ -20,6 +20,10 @@ There's multiple projects in the world to achive the core objective of this proj
 - [Gitee](https://gitee.com/) in China
     > Gitee was chosen by the Ministry of Industry and Information Technology of the Chinese government to make an "independent, open-sourcecode hosting platform for China." [source](https://techcrunch.com/2020/08/21/china-is-building-its-github-alternative-gitee/)
 
+- [AtomicGit | GitCode](https://gitcode.com/) 
+    > AtomicGit | GitCode is a next-generation, AI-driven open-source code hosting platform launched in September 2023 by CSDN and Huawei Cloud CodeArts, operated by Chongqing Open Source Co-creation Technology Co., Ltd. It serves as a comprehensive developer service ecosystem that integrates code hosting, collaborative R&D, project management, and open-source operation support for individual developers, teams, and enterprises. 
+
+
 - [Codeberg](https://codeberg.org/) in Europe
     > The organization selected the European Union for their headquarters and computer infrastructure, due to members' concerns that a software project repository hosted in the United States could be removed if a malicious actor made bad faith copyright claims under the [Digital Millennium Copyright Act](https://en.wikipedia.org/wiki/Digital_Millennium_Copyright_Act).
 
